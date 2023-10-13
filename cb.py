@@ -1,12 +1,16 @@
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import scapy.all as scapy
 
-model_name = "gpt2"
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-model = GPT2LMHeadModel.from_pretrained(model_name)
+def packet_callback(packet):
+    if packet.haslayer(scapy.IP):
+        if packet.haslayer(scapy.TCP):
+            print("Paquete TCP detectado:")
+            print(f"Origen: {packet[scapy.IP].src}:{packet[scapy.TCP].sport}")
+            print(f"Destino: {packet[scapy.IP].dst}:{packet[scapy.TCP].dport}")
+            print(f"Datos: {packet[scapy.Raw].load}")
+        elif packet.haslayer(scapy.UDP):
+            print("Paquete UDP detectado:")
+            print(f"Origen: {packet[scapy.IP].src}:{packet[scapy.UDP].sport}")
+            print(f"Destino: {packet[scapy.IP].dst}:{packet[scapy.UDP].dport}")
+            print(f"Datos: {packet[scapy.Raw].load}")
 
-while True:
-    user_input = input("Tú: ")
-    input_ids = tokenizer.encode(user_input, return_tensors="pt")
-    response = model.generate(input_ids, max_length=50, num_return_sequences=1, pad_token_id=model.config.pad_token_id)
-    bot_response = tokenizer.decode(response[0], skip_special_tokens=True)
-    print(f"Bot: {bot_response}")
+scapy.sniff(filter="udp or tcp", prn=packet_callback)
